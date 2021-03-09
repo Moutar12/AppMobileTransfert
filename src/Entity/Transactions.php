@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\TransactionsRepository;
 use ApiPlatform\Core\Annotation\ApiResource;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -15,12 +16,23 @@ use Doctrine\ORM\Mapping as ORM;
  *                "method"="POST",
  *                   "deserialize"= false
  *           } ,
+ *     "reucuperTransaction"={
+ *                "route_name"="reucuperTransaction" ,
+ *                "method"="PUT",
+ *                   "deserialize"= false
+ *           },
  *           "getAllTransaction"={
  *                  "path"="/transactions" ,
  *                   "method"="GET" ,
- *                   "normalization_context"={"groups"={"allTransaction:read"}} ,
- *          }
+ *                   "normalization_context"={"groups"={"transactions:read"}} ,
+ *          },
+ *     "getTransactionByCode"={
+ *                "route_name"="getTransactionByCode" ,
+ *                "method"="GET",
+ *                   "deserialize"= false
+ *           },
  *     },
+ *
  * )
  */
 class Transactions
@@ -29,16 +41,19 @@ class Transactions
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
+     *@Groups({"transactions:read"})
      */
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="integer", length=255)
+     * @Groups({"transactions:read"})
      */
     private $montant;
 
     /**
      * @ORM\Column(type="date")
+     * @Groups({"transactions:read"})
      */
     private $dateDepot;
 
@@ -48,47 +63,55 @@ class Transactions
     private $dateRetrait;
 
     /**
-     * @ORM\Column(type="date")
+     * @ORM\Column(type="date", nullable=true)
      */
     private $dateAnnulation;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"transactions:read"})
      */
     private $tTc;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"transactions:read"})
      */
     private $fraisEtat;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"transactions:read"})
      */
     private $fraisSystem;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"transactions:read"})
      */
     private $fraisEnvoie;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"transactions:read"})
      */
     private $fraisRetrait;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"transactions:read"})
      */
     private $codeTransaction;
 
     /**
      * @ORM\ManyToOne(targetEntity=User::class, inversedBy="transactions")
+     * @Groups({"transactions:read"})
      */
     private $userDepot;
 
     /**
      * @ORM\ManyToOne(targetEntity=User::class, inversedBy="transactions")
+     * @Groups({"transactions:read"})
      */
     private $userRetrait;
 
@@ -105,7 +128,25 @@ class Transactions
     /**
      * @ORM\ManyToOne(targetEntity=Compte::class, inversedBy="transactions")
      */
-    private $compte;
+    private $compteEnvoie;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Compte::class, inversedBy="transactions")
+     */
+    private $compteRetrait;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $type;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $status;
+
+
+
 
     public function getId(): ?int
     {
@@ -153,7 +194,7 @@ class Transactions
         return $this->dateAnnulation;
     }
 
-    public function setDateAnnulation(\DateTimeInterface $dateAnnulation): self
+    public function setDateAnnulation(?\DateTimeInterface $dateAnnulation): self
     {
         $this->dateAnnulation = $dateAnnulation;
 
@@ -280,15 +321,55 @@ class Transactions
         return $this;
     }
 
-    public function getCompte(): ?Compte
+    public function getCompteEnvoie(): ?Compte
     {
-        return $this->compte;
+        return $this->compteEnvoie;
     }
 
-    public function setCompte(?Compte $compte): self
+    public function setCompteEnvoie(?Compte $compteEnvoie): self
     {
-        $this->compte = $compte;
+        $this->compteEnvoie = $compteEnvoie;
 
         return $this;
     }
+
+    public function getCompteRetrait(): ?Compte
+    {
+        return $this->compteRetrait;
+    }
+
+    public function setCompteRetrait(?Compte $compteRetrait): self
+    {
+        $this->compteRetrait = $compteRetrait;
+
+        return $this;
+    }
+
+    public function getType(): ?string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $type): self
+    {
+        $this->type = $type;
+
+        return $this;
+    }
+
+    public function getStatus(): ?bool
+    {
+        return $this->status;
+    }
+
+    public function setStatus(bool $status): self
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+
+
+
 }

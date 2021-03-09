@@ -62,22 +62,26 @@ class AgenceController extends AbstractController
      *         "_api_collection_operation_name"="addAgence"
      *     }
      *)
-     *
+     * @param Request $request
+     * @return Response
+     * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
      */
     public function addAgence(Request $request): Response
     {
-        $newAgence = json_decode($request->getContent(), true);
-        dd($newAgence);
+        $newAgence = json_decode($request->getContent());
+dd($newAgence);
+        $addAgence = $this->serializer->denormalize($newAgence, Agence::class);
+
         $agence = new Agence();
-        $agence->setNomAgence($newAgence['nomAgence']);
-        $agence->setAdressAgence($newAgence['adressAgence']);
+        $agence->setNomAgence($addAgence['nomAgence']);
+        $agence->setAdressAgence($addAgence['adressAgence']);
         $agence->setStatus(true);
 //        $compte = new Compte();
 //        $compte->setNumCompte($newAgence['numCompte']);
 //        $compte->setSolde($newAgence['solde']);
         //dd($agence);
-        $agence->getCompte()->setNumCompte($newAgence[]);
-        $agence->getCompte()->setSolde($newAgence['solde']);
+        $agence->getCompte()->setNumCompte($addAgence['numCompte']);
+        $agence->getCompte()->setSolde($addAgence['solde']);
         dd($agence);
 
     }

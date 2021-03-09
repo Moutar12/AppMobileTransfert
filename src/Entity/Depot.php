@@ -23,6 +23,13 @@ use Doctrine\ORM\Mapping as ORM;
  *              "access_control"="(is_granted('ROLE_adminSystem') or is_granted('ROLE_caissier'))",
  *              "access_control_message"="Vous n'étes pas autorisé à cette Ressource",
  *     }
+ *     },
+ *itemOperations={
+ *    "annulerDepot"={
+ *                "route_name"="annulerDepot" ,
+ *                "method"="POST",
+ *                   "deserialize"= false
+ *           } ,
  *     }
  *   )
  */

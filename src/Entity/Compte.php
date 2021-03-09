@@ -21,13 +21,28 @@ use Doctrine\ORM\Mapping as ORM;
   *        "access_control_message"="Vous n'étes pas autorisé à cette ressource"
   *     },
   *   "get_compte":{
-   *              "method":"GET",
+ *              "method":"GET",
    *              "path":"/admin/compte",
    *              "normalization_context"={"groups"="compte:read"},
    *              "access_control"="(is_granted('ROLE_adminSystem') )",
    *              "access_control_message"="Vous n'étes pas autorisé à cette Ressource",
    *     }
-  *     }
+  *     },
+ *     itemOperations={
+ *          "getComptebyId"={
+ *               "path"="admin/compte/{id}" ,
+ *               "method"="GET" ,
+ *                "security_post_denormalize"="is_granted('ROLE_adminSystem')" ,
+ *                "security_message"="Only admin system can see a a count"
+ *           },
+ *           "bloquerCompte"={
+ *               "path"="/admin/compte/{id}" ,
+ *               "method"="DELETE" ,
+ *                "security_post_denormalize"="is_granted('ROLE_adminSystem')" ,
+ *                "security_message"="Only admin system can block a a count"
+ *
+ *          }
+ *    }
    *   )
   */
 class Compte
@@ -47,7 +62,6 @@ class Compte
     private $numCompte;
 
 
-
     /**
      * @ORM\ManyToOne(targetEntity=User::class, inversedBy="comptes")
      */
@@ -58,10 +72,6 @@ class Compte
      */
     private $depots;
 
-    /**
-     * @ORM\OneToMany(targetEntity=Transactions::class, mappedBy="compte")
-     */
-    private $transactions;
 
     /**
      * @ORM\Column(type="string", length=255)
@@ -69,10 +79,28 @@ class Compte
      */
     private $solde;
 
+    /**
+     * @ORM\OneToMany(targetEntity=Transactions::class, mappedBy="compteEnvoie")
+     */
+    private $transactions;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $status;
+
+    /**
+     * @ORM\OneToOne(targetEntity=Agence::class, cascade={"persist", "remove"})
+     */
+    private $agence;
+
+
+
     public function __construct()
     {
         $this->depots = new ArrayCollection();
         $this->transactions = new ArrayCollection();
+        $this->caissiers = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -136,35 +164,7 @@ class Compte
         return $this;
     }
 
-    /**
-     * @return Collection|Transactions[]
-     */
-    public function getTransactions(): Collection
-    {
-        return $this->transactions;
-    }
 
-    public function addTransaction(Transactions $transaction): self
-    {
-        if (!$this->transactions->contains($transaction)) {
-            $this->transactions[] = $transaction;
-            $transaction->setCompte($this);
-        }
-
-        return $this;
-    }
-
-    public function removeTransaction(Transactions $transaction): self
-    {
-        if ($this->transactions->removeElement($transaction)) {
-            // set the owning side to null (unless already changed)
-            if ($transaction->getCompte() === $this) {
-                $transaction->setCompte(null);
-            }
-        }
-
-        return $this;
-    }
 
     public function getSolde(): ?string
     {
@@ -177,4 +177,60 @@ class Compte
 
         return $this;
     }
+
+    /**
+     * @return Collection|Transactions[]
+     */
+    public function getTransactions(): Collection
+    {
+        return $this->transactions;
+    }
+
+    public function addTransaction(Transactions $transaction): self
+    {
+        if (!$this->transactions->contains($transaction)) {
+            $this->transactions[] = $transaction;
+            $transaction->setCompteEnvoie($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTransaction(Transactions $transaction): self
+    {
+        if ($this->transactions->removeElement($transaction)) {
+            // set the owning side to null (unless already changed)
+            if ($transaction->getCompteEnvoie() === $this) {
+                $transaction->setCompteEnvoie(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getStatus(): ?bool
+    {
+        return $this->status;
+    }
+
+    public function setStatus(bool $status): self
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getAgence(): ?Agence
+    {
+        return $this->agence;
+    }
+
+    public function setAgence(?Agence $agence): self
+    {
+        $this->agence = $agence;
+
+        return $this;
+    }
+
+
 }

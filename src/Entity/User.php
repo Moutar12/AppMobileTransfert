@@ -38,6 +38,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
  *                   "security_message"="Only admins can add users." ,
  *                   "method"="GET",
  *                   "normalization_context"={"groups"={"usersById:read"}}
+ *              },
+ *      "bloquerUser"={
+ *                  "path"="/admin/user/{id}" ,
+ *                   "security_post_denormalize"="is_granted('ROLE_adminSystem') || is_granted('ROLE_ADMINSYSTEM')" ,
+ *                   "security_message"="Only admin agence and admin system can add users." ,
+ *                   "method"="DELETE"
  *              }
  *     }
 *   )

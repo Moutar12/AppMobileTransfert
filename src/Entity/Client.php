@@ -39,6 +39,21 @@ class Client
      */
     private $transactions;
 
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $codeTransaction;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $montantEnvoyer;
+
+    /**
+     * @ORM\Column(type="string", length=255, nullable=true)
+     */
+    private $action;
+
     public function __construct()
     {
         $this->transactions = new ArrayCollection();
@@ -111,6 +126,42 @@ class Client
                 $transaction->setClientDepot(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCodeTransaction(): ?string
+    {
+        return $this->codeTransaction;
+    }
+
+    public function setCodeTransaction(string $codeTransaction): self
+    {
+        $this->codeTransaction = $codeTransaction;
+
+        return $this;
+    }
+
+    public function getMontantEnvoyer(): ?string
+    {
+        return $this->montantEnvoyer;
+    }
+
+    public function setMontantEnvoyer(string $montantEnvoyer): self
+    {
+        $this->montantEnvoyer = $montantEnvoyer;
+
+        return $this;
+    }
+
+    public function getAction(): ?string
+    {
+        return $this->action;
+    }
+
+    public function setAction(string $action): self
+    {
+        $this->action = $action;
 
         return $this;
     }

@@ -12,22 +12,20 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * @ORM\Entity(repositoryClass=ProfilRepository::class)
+ * @UniqueEntity(fields="libelle", message="this {{ value }} already being used.")
  * @ApiResource(
   *  collectionOperations={
  * "add_profil":{
  *        "method":"POST",
  *        "path":"/admin/profils",
  *        "normalization_context"={"groups"="profil:write"},
- *        "access_control"="(is_granted('ROLE_adminSystem'))",
- *        "access_control_message"="Vous n'étes pas autorisé à cette ressource"
  *
  *     },
  *     "get_profil":{
  *        "method":"GET",
  *        "path":"/admin/profils",
  *        "normalization_context"={"groups"="profil:read"},
- *        "access_control"="(is_granted('ROLE_adminSystem'))",
- *        "access_control_message"="Vous n'étes pas autorisé à cette ressource"
+ *
  *
  *     },
  *     }

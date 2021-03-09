@@ -56,16 +56,13 @@ class Agence
      */
     private $user;
 
-    /**
-     * @ORM\OneToOne(targetEntity=Compte::class, cascade={"persist", "remove"})
-     * *  @Groups({"agence:write"})
-     * @ApiSubresource
-     */
-    private $compte;
+
 
     public function __construct()
     {
         $this->user = new ArrayCollection();
+        $this->userAgences = new ArrayCollection();
+        $this->depot = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -139,15 +136,10 @@ class Agence
         return $this;
     }
 
-    public function getCompte(): ?Compte
-    {
-        return $this->compte;
-    }
 
-    public function setCompte(?Compte $compte): self
-    {
-        $this->compte = $compte;
 
-        return $this;
-    }
+
+
+
+
 }
