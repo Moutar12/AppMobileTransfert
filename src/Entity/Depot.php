@@ -11,11 +11,13 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Entity(repositoryClass=DepotRepository::class)
  *@ApiResource(
  *  collectionOperations={
- *      "caisseDepot"={
+ *
+ *     "caisseDepot"={
  *                "route_name"="caisseDepot" ,
- *                "method"="POST",
- *                   "deserialize"= false
+ *                "access_control"="(is_granted('ROLE_caissier'))",
+ *
  *           } ,
+ *
  *     "get_depot":{
  *              "method":"GET",
  *              "path":"/admin/depot",
@@ -24,13 +26,7 @@ use Doctrine\ORM\Mapping as ORM;
  *              "access_control_message"="Vous n'étes pas autorisé à cette Ressource",
  *     }
  *     },
- *itemOperations={
- *    "annulerDepot"={
- *                "route_name"="annulerDepot" ,
- *                "method"="POST",
- *                   "deserialize"= false
- *           } ,
- *     }
+ *
  *   )
  */
 class Depot
@@ -44,7 +40,7 @@ class Depot
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="integer")
      *@Groups({"depot:write","depot:read"})
      */
     private $montant;

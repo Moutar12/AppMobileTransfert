@@ -21,6 +21,13 @@ use Doctrine\ORM\Mapping as ORM;
  *        "access_control"="(is_granted('ROLE_adminSystem'))",
  *        "access_control_message"="Vous n'étes pas autorisé à cette ressource"
  *     },
+ *     "get_agence":{
+ *        "method":"GET",
+ *        "path":"/admin/agence",
+ *        "normalization_context"={"groups"="agence:read"},
+ *        "access_control"="(is_granted('ROLE_adminSystem'))",
+ *        "access_control_message"="Vous n'étes pas autorisé à cette ressource"
+ *     },
 *     }
 *   )
  */
@@ -30,19 +37,19 @@ class Agence
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
-     * @Groups({"agence:write"})
+     * @Groups({"agence:write","usersid:read","agence:read"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
-     *  @Groups({"agence:write"})
+     *  @Groups({"agence:write","agence:read"})
      */
     private $nomAgence;
 
     /**
      * @ORM\Column(type="string", length=255)
-     *  @Groups({"agence:write"})
+     *  @Groups({"agence:write","agence:read"})
      */
     private $adressAgence;
 
@@ -55,6 +62,11 @@ class Agence
      * @ORM\OneToMany(targetEntity=User::class, mappedBy="agence")
      */
     private $user;
+
+    /**
+     * @ORM\OneToOne(targetEntity=Compte::class, cascade={"persist", "remove"})
+     */
+    private $compte;
 
 
 
@@ -132,6 +144,18 @@ class Agence
                 $user->setAgence(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCompte(): ?Compte
+    {
+        return $this->compte;
+    }
+
+    public function setCompte(?Compte $compte): self
+    {
+        $this->compte = $compte;
 
         return $this;
     }

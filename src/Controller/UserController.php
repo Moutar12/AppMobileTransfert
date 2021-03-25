@@ -5,6 +5,7 @@ namespace App\Controller;
 use ApiPlatform\Core\Validator\ValidatorInterface;
 use App\Entity\Profil;
 use App\Entity\User;
+use App\Repository\AgenceRepository;
 use App\Repository\ProfilRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,9 +44,14 @@ class UserController extends AbstractController
      * @var ProfilRepository
      */
     private $profilRepository;
+    /**
+     * @var AgenceRepository
+     */
+    private $agenceRepository;
 
     public function __construct(SerializerInterface $serializer, UserRepository $userRepository, EntityManagerInterface $manager,
-                                ValidatorInterface $validator, UserPasswordEncoderInterface $encoder, ProfilRepository $profilRepository
+                                ValidatorInterface $validator, UserPasswordEncoderInterface $encoder, ProfilRepository $profilRepository,
+                        AgenceRepository $agenceRepository
     ){
         $this->serializer = $serializer;
         $this->userRepository = $userRepository;
@@ -53,6 +59,7 @@ class UserController extends AbstractController
         $this->validator = $validator;
         $this->encoder = $encoder;
         $this->profilRepository = $profilRepository;
+        $this->agenceRepository = $agenceRepository;
     }
 
     /**
@@ -67,6 +74,7 @@ class UserController extends AbstractController
         $user = $request->request->all();
 
        $profil = $user['profil'];
+        $agence = $user["agence"] ;
 
         $newUser = new User();
 
@@ -91,6 +99,7 @@ class UserController extends AbstractController
         $newUser->setPrenom($user['prenom']);
         $newUser->setStatus(false);
         $newUser->setAvatar($user['avatar']);
+        $newUser->setAgence($this->agenceRepository->findOneBy(['id'=>$agence]));
         $newUser->setPassword($this->encoder->encodePassword($newUser, $user['password']));
         $newUser->setProfil($this->profilRepository->findOneBy(["libelle" => $profil]));
 

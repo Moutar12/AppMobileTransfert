@@ -22,30 +22,25 @@ class Client
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private $nomComplet;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
     private $phone;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $cni;
 
     /**
-     * @ORM\OneToMany(targetEntity=Transactions::class, mappedBy="clientDepot")
+     * @ORM\OneToMany(targetEntity=Transactions::class, mappedBy="clientDepot", cascade={"persist"})
      */
     private $transactions;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $codeTransaction;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="integer", length=255)
      */
     private $montantEnvoyer;
 
@@ -53,6 +48,16 @@ class Client
      * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $action;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $nom;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $prenom;
 
     public function __construct()
     {
@@ -62,18 +67,6 @@ class Client
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getNomComplet(): ?string
-    {
-        return $this->nomComplet;
-    }
-
-    public function setNomComplet(string $nomComplet): self
-    {
-        $this->nomComplet = $nomComplet;
-
-        return $this;
     }
 
     public function getPhone(): ?string
@@ -162,6 +155,30 @@ class Client
     public function setAction(string $action): self
     {
         $this->action = $action;
+
+        return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): self
+    {
+        $this->nom = $nom;
+
+        return $this;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+
+    public function setPrenom(string $prenom): self
+    {
+        $this->prenom = $prenom;
 
         return $this;
     }

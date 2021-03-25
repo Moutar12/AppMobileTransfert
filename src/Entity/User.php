@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use ApiPlatform\Core\Annotation\ApiSubresource;
 use ApiPlatform\Core\Annotation\ApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -35,14 +36,13 @@ use Symfony\Component\Security\Core\User\UserInterface;
  *      itemOperations={
  *               "getusersbyId"={
  *                  "path"="/admin/users/{id}" ,
- *                   "security_message"="Only admins can add users." ,
- *                   "method"="GET",
- *                   "normalization_context"={"groups"={"usersById:read"}}
+ *                  "method"="GET",
+ *                  "normalization_context"={"groups"={"usersid:read"}},
+ *                   "security_post_denormalize"="is_granted('ROLE_adminSystem') || is_granted('ROLE_adminAgence') || is_granted('ROLE_userAgence') || is_granted('ROLE_caissier')" ,
  *              },
  *      "bloquerUser"={
  *                  "path"="/admin/user/{id}" ,
  *                   "security_post_denormalize"="is_granted('ROLE_adminSystem') || is_granted('ROLE_ADMINSYSTEM')" ,
- *                   "security_message"="Only admin agence and admin system can add users." ,
  *                   "method"="DELETE"
  *              }
  *     }
@@ -56,7 +56,7 @@ class User implements UserInterface
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $id;
 
@@ -78,31 +78,31 @@ class User implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=255)
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $prenom;
 
     /**
      * @ORM\Column(type="string", length=255)
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $nom;
 
     /**
      * @ORM\Column(type="string", length=255)
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $phone;
 
     /**
      * @ORM\Column(type="string", length=255)
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $adresse;
 
     /**
      * @ORM\Column(type="string", length=255)
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $cni;
 
@@ -114,33 +114,39 @@ class User implements UserInterface
 
     /**
      * @ORM\ManyToOne(targetEntity=Profil::class, inversedBy="user")
-     *@Groups({"user:write","users:read"})
+     *@Groups({"user:write","users:read","usersid:read"})
      */
     private $profil;
 
 
     /**
      * @ORM\OneToMany(targetEntity=Compte::class, mappedBy="user")
+     * @Groups({"user:write","users:read","usersid:read"})
      */
     private $comptes;
 
     /**
      * @ORM\ManyToOne(targetEntity=Agence::class, inversedBy="user")
+     * @Groups({"user:write","users:read","usersid:read"})
+     * @ApiSubresource
      */
     private $agence;
 
     /**
      * @ORM\OneToMany(targetEntity=Transactions::class, mappedBy="userDepot")
+     * @Groups({"user:write","users:read","usersid:read"})
      */
     private $transactions;
 
     /**
      * @ORM\OneToMany(targetEntity=Depot::class, mappedBy="user")
+     * @Groups({"user:write","users:read","usersid:read"})
      */
     private $depots;
 
     /**
      * @ORM\Column(type="blob", nullable=true)
+     * @Groups({"user:write","users:read","usersid:read"})
      */
     private $avatar;
 
@@ -416,6 +422,10 @@ class User implements UserInterface
 
     public function getAvatar()
     {
+        $avatar = $this->avatar;
+        if($avatar) {
+            return (base64_encode(stream_get_contents($this->avatar))) ;
+        }
         return $this->avatar;
     }
 

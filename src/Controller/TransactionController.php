@@ -15,12 +15,14 @@ use App\Repository\TransactionsRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Security;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Constraints\Json;
 
 class TransactionController extends AbstractController
 {
@@ -71,6 +73,7 @@ class TransactionController extends AbstractController
      * @var AgenceRepository
      */
     private $agenceRepository;
+    private $commissionsRepository;
 
     public function __construct(UserRepository $userRepository, SerializerInterface $serialize, CompteRepository $compteRepository,
                                 EntityManagerInterface $entityManager, ValidatorInterface $validator, TransactionsRepository $transactionsRepository,
@@ -91,6 +94,16 @@ class TransactionController extends AbstractController
     }
 
 
+    public function genereCode() {
+        // genere code transaction
+        $rand1 = rand(1, 99);  // choose number beetween 10-1000
+        $rand2 = rand(1, 99);  // choose number beetween 1000-1000
+        $date = new \DateTime('now');
+        $genereCodeTransaction = $rand1.date_format($date, 'mdHis').$rand2;
+        //  $genereCodeTransaction = str_shuffle($rand1.date_format($date, 'YmdHi').$rand2);
+        return $genereCodeTransaction;
+    }
+
 
 
     public function getTarif($montant) {
@@ -106,23 +119,47 @@ class TransactionController extends AbstractController
 
 
     public function getCommissions() {
-        $coms = $this->commissionsRepository->findAll();
+        $coms = $this->commissionRepository->findAll();
         foreach($coms as $value) {
-            if($value->getActive() == true && $value->getArchivage() == false) {
+
                 return $value ;
-            }
+
         }
     }
+    public function getFrais($montant){
+        // $data =[];
+        //$frais=  $this->CalcFrais($montant);
+        $datas = $this->tarifRepository->findAll();
+        $frais = 0;
+        $data =[];
+        foreach ($datas as $value){
+            if($montant>=2000000){
+                $frais = ($value->getFraisEnvoie()*$montant)/100;
+            }else{
+                switch($montant){
+                    case $montant>= $value->getBornInferieur() && $montant<$value->getBornInferieur():
+                        $frais = $value->getFraisEnvoie();
+                        break;
+                }
+            }
 
-    public function genereCode() {
-        // genere code transaction
-        $rand1 = rand(1, 100);  // choose number beetween 10-1000
-        $rand2 = rand(100, 1000);  // choose number beetween 1000-1000
-        $date = new \DateTime('now');
-        $genereCodeTransaction = str_shuffle($rand1.date_format($date, 'YmdHi').$rand2);
-        return $genereCodeTransaction;
+
+        }
+        $data['frais'] = $frais;
+        $data['montantSend'] = $montant - $frais;
+        return $data;
+        // 500 -> 425 = 925
     }
 
+//    public function genereCode() {
+//        // genere code transaction
+//        $rand1 = rand(1, 100);  // choose number beetween 10-1000
+//        $rand2 = rand(100, 1000);  // choose number beetween 1000-1000
+//        $date = new \DateTime('now');
+//        $genereCodeTransaction = str_shuffle($rand1.date_format($date, 'YmdHi').$rand2);
+//        return $genereCodeTransaction;
+//    }
+//
 
 
 
@@ -149,79 +186,102 @@ class TransactionController extends AbstractController
     {
         // $typeTransaction = array('envoi','retrait');
         // recup tous les donnees
-        $dataPostman = json_decode($request->getContent(), true);
+        $data = json_decode($request->getContent());
 
-        $depot = $this->serializer->denormalize($dataPostman, Transactions::class);
+        //dd($this->getUser());
+     $depot = $security->getUser();
+      $this->userRepository->findOneBy(['id' => $depot->getId()]);
+    //dd($depot);
+        $agence = $depot->getAgence()->getId();
+        //dd($agence);
 
-        $frais = $this->getTarif($dataPostman["montant"]);
-        $montantReelEnvoye  = $dataPostman["montant"] - $frais;
-        $etat = $frais*0.4;
-        $system = $frais*0.3;
-        $fraisDepot = $frais*0.1;
-        $fraisRetrait = $frais*0.2;
+        $compteEnvoi = $this->compteReopsitory->findBy(['agence' =>$agence])[0];
+        //dd($compteDepot);
+
+        $montantEnvoi = $data->montant;
+
+        if ($montantEnvoi < 0) {
+            return new JsonResponse('Le montant doit etre supérieur à 0', 400);
+        }
+        if ($compteEnvoi->getSolde() < $montantEnvoi){
+            return new JsonResponse("Votre solde ne vous permet de faire cette action",400);
+        }
+//        $dataPostman->user;$frais = $this->getTarif($data["montant"]);
+//        $montantReelEnvoye  = $data["montant"] - $frais;
+//        //dd($montantReelEnvoye);
+//        $etat = $frais*0.4;
+//        $system = $frais*0.3;
+//        $fraisDepot = $frais*0.1;
+//        $fraisRetrait = $frais*0.2;
+
+        if ($montantEnvoi < 2000000){
+            $fraisEnvoie = $this->getTarif($montantEnvoi);
+            $montant = $montantEnvoi - $fraisEnvoie;
+        }elseif ($montantEnvoi >= 2000000){
+            $fraisEnvoie = $montantEnvoi * 0.2;
+            $montant = $montantEnvoi - $fraisEnvoie;
+        }
+
+        //dd($this->getCommissions());
+        $comEtat = ($this->getCommissions()->getFraisEtat()) / 100;
+        //dd($comEtat);
+        $comSystem = ($this->getCommissions()->getFraisSystem()) / 100;
+        $comEnvoie = ($this->getCommissions()->getFraisenvoie()) / 100;
+        $comRetrit = ($this->getCommissions()->getFraisRetrait()) / 100;
+//dd($comRetrit);
+
+        $fraisEtat = $fraisEnvoie * $comEtat;
+        $fraisSystem = $fraisEnvoie * $comSystem;
+        $fraisEnvoi = $fraisEnvoie * $comEnvoie;
+        $fraisRetraits = $fraisEnvoie * $comRetrit;
+
+        $compteEnvoi->setSolde(($compteEnvoi->getSolde() - $montantEnvoi + $fraisEnvoie));
+
+        $genereCodeTransaction = $this->genereCode();
 
         $clientEnv = new Client();
         $codeTransaction = rand(100,999)*243;
-        $clientEnv->setMontantEnvoyer($montantReelEnvoye)
-            ->setnomComplet($dataPostman['nomCompletEnvoi'])
-            ->setPhone($dataPostman['phoneEnvoi'])
-            ->setCodeTransaction($codeTransaction)
-            ->setAction("depot")
-            ->setcni($dataPostman["cni"]);
+        $clientEnv->setMontantEnvoyer($montant)
+            ->setPhone($data->phoneEnvoi)
+            ->setPrenom($data->prenomEnvoi)
+            ->setNom($data->nomEnvoi)
+            ->setCodeTransaction($genereCodeTransaction)
+            ->setAction("depot");
+            //->setcni($dataPostman["cni"]);
         $this->manager->persist($clientEnv);
 
 
         $clientRecv = new Client();
-        $clientRecv->setMontantEnvoyer($montantReelEnvoye)
-            ->setnomComplet($dataPostman['nomCompletRec'])
-            ->setPhone($dataPostman['phoneRec'])
-            ->setCodeTransaction($codeTransaction)
-            ->setcni($dataPostman["cni"]);
+        $clientRecv->setMontantEnvoyer($montant)
+           ->setPhone($data->phoneRec)
+            ->setNom($data->nomRec)
+            ->setPrenom($data->prenomRec)
+            ->setCodeTransaction($genereCodeTransaction)
+            ->setcni($data->cni);
             $this->manager->persist($clientRecv);
 
-
-        //   dd($clientRecv);
-
-
-        // On recupere le montant
-        // $montant = $this->compterepository->find($dataPostman["montant"]);
-        // dd($montant);
-
-        // On recupere l'id compte
-        $cpte = $this->compteReopsitory->find($dataPostman["comptes"]);
-        // dd($cpte);
-        // Deduction du compte cad lors d'un depot cad actualisation
-        $dept = $cpte->setSolde(($cpte->getSolde() - ($dataPostman["montant"])) + $fraisDepot) ;
-
-
-        // dd($dept);
-
-
-        //     // Ajout du compte cad lors d'unretrait
-        // $dept = $cpte->setSolde($cpte->getSolde() + $depot->getMontant());
+//        $cpte = $this->compteReopsitory->find($dataPostman["compte"]);
+//        $dept = $cpte->setSolde(($cpte->getSolde() - ($dataPostman["montant"]) + $frais)) ;
 
 
 
-        //($cpte->setSolde($cpte->getSolde() - $depot->getMontant()));
-
-        // genere code transaction
-        $numBeetween = rand(1, 10);  // choose number beetween 100-1000
-        $date = new \DateTime('now');
 
 
 
+
+        $depot = new Transactions();
         $depot->setDateDepot(new \DateTime())
-            ->setdateRetrait(new \DateTime())
-            ->setdateAnnulation(new \DateTime())
+            ->setMontant($montant)
             ->setUserDepot($security->getUser())
             ->setTtc(100)
-            ->setFraisEtat($etat)
-            ->setFraisSystem($system)
-            ->setFraisEnvoie($fraisDepot)
-            ->setFraisRetrait($fraisRetrait)
-            ->setCodeTransaction($codeTransaction)
+            ->setFraisEtat($fraisEtat)
+            ->setFraisSystem($fraisSystem)
+            ->setFraisEnvoie($fraisEnvoi)
+            ->setFraisRetrait($fraisRetraits)
+            ->setCodeTransaction($genereCodeTransaction)
             ->setClientDepot($clientEnv)
             ->setClientRetrait($clientRecv)
+            ->setCompteEnvoie($compteEnvoi)
             ->setType("EnCours")
             ->setStatus(false);
 
@@ -233,7 +293,6 @@ class TransactionController extends AbstractController
 
 
         $this->manager->persist($depot);
-        $this->manager->persist($dept);
 
         $this->manager->flush();
 
@@ -242,11 +301,42 @@ class TransactionController extends AbstractController
 
     }
 
+
+
+
+    /**
+     * @Route(
+     *      name="calculFrais" ,
+     *      path="/api/decalculer",
+     *     methods={"POST"} ,
+     *
+     *)
+     * @param Request $request
+     * @return Response
+     */
+
+    public function retunFrais(Request $request) {
+        $montantPostman =  json_decode($request->getContent());
+        //$montant = $this->serializer->denormalize()
+        if($montantPostman->montant < 0) {
+            return $this->json("le montant ne peut pas être négatif!", 400);
+        } else if(!is_numeric($montantPostman->montant)) {
+            return $this->json("Vous devez founir un nombre valide, non une chaine de caractère!", 400);
+        } else if($montantPostman->montant > 2000000) {
+            $frais = ((int)($montantPostman->montant)) * 0.02;
+            return $this->json($frais, 200);
+        }
+
+        $frais  = $this->getTarif((int)($montantPostman->montant));
+        //$array = json_decode($frais, true);
+        return $this->json($frais, 200);
+    }
+
     /**
      * @Route(
      *      name="reucuperTransaction" ,
      *      path="/api/recupTransaction/{code}" ,
-     *     methods={"PUT"} ,
+     *     methods={"GET"} ,
      *     defaults={
      *         "__controller"="App\Controller\TransactionController::reucuperTransaction",
      *         "_api_resource_class"=Transactions::class ,
@@ -254,7 +344,7 @@ class TransactionController extends AbstractController
      *     }
      *)
      */
-    public function reucuperTransaction(Request $request, $code)
+    public function reucuperTransaction(Request $request, $code, Security $security)
     {
 
         $RetraitRansaction =  $this->transactionsRepository->findTransactionByCode($code) ;
@@ -267,33 +357,41 @@ class TransactionController extends AbstractController
                 return $this->json("Cette transaction a étè annulée ", 400);
             } else {
                 // data given on postman
-                $dataPostman =  json_decode($request->getContent());
-                $idCompteCaissierGiven = $dataPostman->compte;
+                //$dataPostman =  json_decode($request->getContent());
+               // $idCompteCaissierGiven = $dataPostman->compte;
+                $userRetrait = $security->getUser();
+                $this->userRepository->findOneBy(['id' => $userRetrait->getId()]);
+                $agence = $userRetrait->getAgence()->getId();
+                //dd($agence);
 
+                $compte = $this->compteReopsitory->findBy(['id' => $agence])[0];
+                ///dd($compte);
+                $compte->setSolde($compte->getSolde() +$RetraitRansaction->getMontant() + $RetraitRansaction->getFraisRetrait());
                 $time = new \DateTime();
                 $RetraitRansaction->setDateRetrait($time);
                 $RetraitRansaction->setType("Reussie");
-                $RetraitRansaction->setCompteRetrait($this->competeReopsitory->findOneBy(['id'=>(int)$idCompteCaissierGiven]));
+                $RetraitRansaction->setCompteRetrait($compte);
+                $RetraitRansaction->setUserRetrait($security->getUser());
                 $this->manager->persist($RetraitRansaction);
-                // dd($transactionDo);
 
-                $compte =  $this->competeReopsitory->findOneBy(['id'=>(int)$idCompteCaissierGiven]);
-                $compte->setSolde($compte->getSolde() +$RetraitRansaction->getMontant() + $RetraitRansaction->getFraisRetrait());
-                $this->manager->persist($compte);
-                //  dd($compteFocus);
-
-                //update client received
+//                $compte =  $this->competeReopsitory->findOneBy(['id'=>(int)$idCompteCaissierGiven]);
+//                //dd($compte);
+//                $compte->setSolde($compte->getSolde() +$RetraitRansaction->getMontant() + $RetraitRansaction->getFraisRetrait());
+//                $this->manager->persist($compte);
+//                //  dd($compteFocus);
+//
+//                //update client received
                 $clientReceiver = $this->clientRepository->find($RetraitRansaction->getClientDepot()->getId());
                 $clientReceiver->setMontantEnvoyer($RetraitRansaction->getMontant());
                 $clientReceiver->setAction("retrait");
                 $this->manager->persist($clientReceiver);
 
                 // summarize transaction
-                $summarizeTransaction = new ResumeTransaction();
-                $summarizeTransaction->setMontant($RetraitRansaction->getMontant());
-                $summarizeTransaction->setCompte($idCompteCaissierGiven);
-                $summarizeTransaction->setType("retrait");
-                $this->manager->persist($summarizeTransaction);
+//                $summarizeTransaction = new ResumeTransaction();
+//                $summarizeTransaction->setMontant($RetraitRansaction->getMontant());
+//                $summarizeTransaction->setCompte($idCompteCaissierGiven);
+//                $summarizeTransaction->setType("retrait");
+//                $this->manager->persist($summarizeTransaction);
 
                 $this->manager->flush();
                 return $this->json("retrait reussit", 201);
@@ -307,44 +405,34 @@ class TransactionController extends AbstractController
 
 
     /**
-     * @Route(
-     *      name="getTransactionByCode" ,
-     *      path="/api/transaction/{code}" ,
-     *     methods={"GET"} ,
-     *     defaults={
-     *         "__controller"="App\Controller\TransactionController::getTransactionByCode",
-     *         "_api_resource_class"=Transactions::class ,
-     *         "_api_collection_operation_name"="getTransactionByCode"
-     *     }
-     *)
+     * @Route("/api/transaction/{code}", name="addTransaction", methods={"GET"})
+     * @param Request $request
+     * @param SerializerInterface $serializer
+     * @param $code
+     * @return JsonResponse
      */
-    public function getTransactionByCode(Request $request, SerializerInterface $serializer, $code)
+    public function getTransactionByCode(Request $request, SerializerInterface $serializer, $code )
     {
         $data = array();
 
         $transaction =  $this->transactionsRepository->findTransactionByCode($code) ;
-
+//dd($transaction);
         if($transaction) {
 
-            $recuperator = $this->clientRepository->findById($transaction->getClientRetrait()->getId());
-            // transaction client
-           // dd($recuperator);
-            if($recuperator) {
-                $envoyer = $this->clientRepository->findById($transaction->getClientDepot()->getId());
-                // browser data
-                //dd($envoyer);
-                foreach($envoyer as $env ) {
-                    foreach($recuperator as $recup) {
-                        array_push($data, $transaction, $env, $recup );
-                        //dd(array_push());
-                        //dd($data);
-                    }
+            $recuperator = $this->clientRepository->findOneBy(["id"=>$transaction->getClientDepot()->getId()]);
+            if($recuperator){
+            $envoyer = $this->clientRepository->findOneBy(["id"=>$transaction->getClientRetrait()->getId()]);
+            //dd($envoyer);
+            foreach($envoyer as $key=>$env ) {
+                foreach($recuperator as $recup) {
+                    array_push($data, $transaction, $env, $recup );
                 }
-                return $this->json($data , 200);
-            } else {
-                //dd($data);
-                 $deposer = $this->clientRepository->findById($transaction->getClientDepot()->getId());
-                 $retrait = $this->clientRepository->findById($transaction->getClientRetrait()->getId());
+            }
+            return $this->json($data , 200);
+             }
+            else {
+                $deposer = $this->clientRepository->findById($transaction->getCompteEnvoie()->getId());
+                $retrait = $this->clientRepository->findById($transaction->getClientRetrait()->getId());
 
                 foreach($deposer as $dep) {
                     foreach($retrait as $ret) {

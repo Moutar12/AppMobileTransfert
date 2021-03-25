@@ -24,15 +24,15 @@ use Doctrine\ORM\Mapping as ORM;
  *              "method":"GET",
    *              "path":"/admin/compte",
    *              "normalization_context"={"groups"="compte:read"},
-   *              "access_control"="(is_granted('ROLE_adminSystem') )",
+   *              "access_control"="(is_granted('ROLE_adminSystem') || is_granted('ROLE_caissier') )",
    *              "access_control_message"="Vous n'étes pas autorisé à cette Ressource",
    *     }
   *     },
  *     itemOperations={
  *          "getComptebyId"={
- *               "path"="admin/compte/{id}" ,
+ *               "path"="/admin/compte/{id}" ,
  *               "method"="GET" ,
- *                "security_post_denormalize"="is_granted('ROLE_adminSystem')" ,
+ *                "security_post_denormalize"="is_granted('ROLE_adminSystem') || is_granted('ROLE_adminAgence') || is_granted('ROLE_userAgence') || is_granted('ROLE_caissier')" ,
  *                "security_message"="Only admin system can see a a count"
  *           },
  *           "bloquerCompte"={

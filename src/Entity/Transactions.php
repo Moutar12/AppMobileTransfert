@@ -14,11 +14,11 @@ use Doctrine\ORM\Mapping as ORM;
  *          "transfertClient"={
  *                "route_name"="transfertClient" ,
  *                "method"="POST",
- *                   "deserialize"= false
+ *                 "deserialize"= false
  *           } ,
  *     "reucuperTransaction"={
  *                "route_name"="reucuperTransaction" ,
- *                "method"="PUT",
+ *     "security_post_denormalize"="is_granted('ROLE_userAgence')" ,
  *                   "deserialize"= false
  *           },
  *           "getAllTransaction"={
@@ -29,8 +29,13 @@ use Doctrine\ORM\Mapping as ORM;
  *     "getTransactionByCode"={
  *                "route_name"="getTransactionByCode" ,
  *                "method"="GET",
- *                   "deserialize"= false
+ *                 "deserialize"= false
  *           },
+ *     "DeCalculer":{
+ *               "method":"POST",
+ *
+ *               "route_name"="calculFrais"
+ *          }
  *     },
  *
  * )
@@ -58,7 +63,7 @@ class Transactions
     private $dateDepot;
 
     /**
-     * @ORM\Column(type="date")
+     * @ORM\Column(type="date",nullable=true)
      */
     private $dateRetrait;
 
@@ -121,7 +126,7 @@ class Transactions
     private $clientDepot;
 
     /**
-     * @ORM\ManyToOne(targetEntity=Client::class, inversedBy="transactions")
+     * @ORM\ManyToOne(targetEntity=Client::class, inversedBy="transactions" , cascade={"persist"})
      */
     private $clientRetrait;
 

@@ -64,8 +64,8 @@ class DepotController extends AbstractController
     private $tokenStorage;
 
     public function __construct(CompteRepository $compteRepository, SerializerInterface $serializer, UserRepository $userRepository,
-                   AgenceRepository $agenceRepository,  EntityManagerInterface $manager , DepotRepository  $depotRepository,
-    TokenStorageInterface $tokenStorage
+                   AgenceRepository $agenceRepository,  EntityManagerInterface $manager , DepotRepository  $depotRepository
+
     ){
         $this->compteRepository = $compteRepository;
         $this->userRepository = $userRepository;
@@ -73,7 +73,7 @@ class DepotController extends AbstractController
         $this->manager = $manager;
         $this->depotRepository = $depotRepository;
         $this->agenceRepository = $agenceRepository;
-        $this->tokenStorage = $tokenStorage;
+
     }
 
     /**
@@ -82,7 +82,7 @@ class DepotController extends AbstractController
      *      path="/api/caissier/depot",
      *     methods={"POST"} ,
      *     defaults={
-     *         "__controller"="App\Controller\TransactionController::caisseDepot",
+     *         "__controller"="App\Controller\DepotController::caisseDepot",
      *         "_api_resource_class"=Depot::class ,
      *         "_api_collection_operation_name"="caisseDepot"
      *     }
@@ -91,78 +91,30 @@ class DepotController extends AbstractController
      */
     public function caisseDepot(Request $request, Security $security): Response
     {
-       /* $dataDepot = json_decode($request->getContent());
+        $infos = json_decode($request->getContent(),true);
+        $depot = $this->serializer->denormalize($infos, Depot::class);
+        //dd($depot);
+        $user = $security->getUser();
+        //dd($user);
+        if(isset($infos['comptes'])){
+            $compte = $this->compteRepository->findOneBy(['id' =>$infos['comptes']]);
+            //dd($compte);
+        }
+        if($infos['montant']> 0){
+           // dd($infos['montant']);
+            $compte->setSolde($compte->getSolde() + $infos['montant']);
 
-        //$montantDepot = $dataDepot->getMontant();
-
-       // $caissier = $dataDepot->getCompte();
-        //dd($caissier);
-        $compte = $this->compteRepository->findOneBy(["id"=>(int)$dataDepot]);
-
-       // $compte->getSolde(($compte->getSolde() + $montantDepot));
-
-        $depotUser = $dataDepot;
-        $depot = new Depot();
-        $time = new \DateTime();
-        $depot->setMontant($depotUser);
-        $depot->setDateDepot($time);
-        $depot->setCompte($this->compteRepository->findOneBy(["id"=>(int)$dataDepot]));
-        dd($depot);*/
-
-
-//        $depotReq = $request->request->all();
-//        //dd($depotReq);
-//        $depot = new Depot();
-//        $depot->setMontant($depotReq['montant']);
-//        $depot->setDateDepot(new \DateTime());
-//        $depot->setCompte($this->compteRepository->findOneBy(["id"=>(int)$depotReq]));
-//        $depot->getCompte()->setSolde( $depot->getCompte()->getSolde($this->solde)+$depotReq['montant']);
-//        //dd($depot);
-//        $this->manager->persist($depot);
-//        $this->manager->flush();
-//
-//        return $this->json("success", 200);
-
-        // recup tous les donnees
-        // $dataPostman = json_decode($request->getContent(), true);
-        //all data from postman
-        // recup tous les donnees
-        // $dataPostman = json_decode($request->getContent(), true);
-        $dataPostman =  json_decode($request->getContent());
-        // dd($dataPostman);
-        // denormalize
-        // $depot = $this->serializer->denormalize($dataPostman, Depot::class);
-        $montant = $dataPostman->montant ; //get montant
-        // dd($montant);
-        $utilisateur = $dataPostman->user ; //get utilisateur
-        // dd($utilisateur);
-
-        // Validate negatif number
-        if($montant < 0) {
-            // return new JsonResponse("Can be negative number!" ,400) ;
-            return $this->json("le montant ne peut pas être négatif!",400);
+        }else{
+            return new JsonResponse("le montant doit etre superieiur à 0",400,[],true);
         }
 
-        // // Instancier Depot
-        $newDepot = new Depot();
-        $newDepot->setDateDepot(new \DateTime());
-        $newDepot->setmontant($dataPostman->montant);
-        $newDepot->setUser($security->getUser());
-        //get id agence of utilisateur
-        $idAgence = $this->userRepository->findOneBy(['id'=>(int)$utilisateur])->getAgence()->getId();
-        //  dd($idAgence);
-        // Id de l'agence ci_dessus on cherche son compte
-        $focusCompte = $this->compteRepository->findBy(['agence'=>$idAgence]); //reper account
-        // dd($focusCompte);
-        $newDepot->setCompte($focusCompte->getCompt());
-        // dd($newDepot);
-        $this->manager->persist($newDepot);
-        $focusCompte[0]->setSolde($focusCompte[0]->getSolde() + $montant);
-        // dd($focusCompte);
-        $this->manager->persist($focusCompte[0]);
+        $depot->setDateDepot(new \DateTime('now'));
+        $depot->setUser($user);
+        $depot->setCompte($compte);
+        $this->manager->persist($depot);
         $this->manager->flush();
+        return $this->json(['message' => 'le depot a été effectuer avec success ', 'data'=>$depot]);
 
-        return $this->json("Votre dépôt a réussi avec success!",201);
     }
 
 
